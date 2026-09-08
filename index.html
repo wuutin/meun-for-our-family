@@ -19,6 +19,7 @@
             color: var(--text-color);
             margin: 0;
             padding: 20px;
+            padding-bottom: 90px; /* 留出底部懸浮購物車空間 */
             display: flex;
             justify-content: center;
         }
@@ -31,6 +32,7 @@
             padding: 25px;
             box-shadow: 0 10px 25px rgba(255, 143, 163, 0.3);
             border: 3px solid #ffccd5;
+            position: relative;
         }
 
         h1 {
@@ -50,7 +52,7 @@
         .section-title {
             font-size: 1.1rem;
             color: #a4133c;
-            margin-top: 20px;
+            margin-top: 10px;
             margin-bottom: 12px;
         }
 
@@ -68,6 +70,9 @@
             text-align: center;
             cursor: pointer;
             transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
         .menu-item.selected {
@@ -78,7 +83,7 @@
 
         .menu-item img {
             width: 100%;
-            height: 90px;
+            height: 100px;
             object-fit: cover;
             border-radius: 10px;
             margin-bottom: 8px;
@@ -87,6 +92,147 @@
         .menu-item .name {
             font-weight: bold;
             font-size: 0.95rem;
+            margin-bottom: 8px;
+        }
+
+        .btn-add {
+            background: #ff8fa3;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .menu-item.selected .btn-add {
+            background: #ff4d6d;
+        }
+
+        /* 購物車懸浮按鈕 */
+        .cart-float-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 50%;
+            transform: translateX(50%);
+            width: 90%;
+            max-width: 440px;
+            background: linear-gradient(135deg, #ff758f, #ff4d6d);
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(255, 77, 109, 0.4);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .cart-badge {
+            background: white;
+            color: #ff4d6d;
+            border-radius: 50%;
+            padding: 2px 8px;
+            font-size: 0.9rem;
+            margin-left: 8px;
+        }
+
+        /* 購物車彈窗 Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: flex-end;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            width: 100%;
+            max-width: 480px;
+            max-height: 80vh;
+            border-top-left-radius: 25px;
+            border-top-right-radius: 25px;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #fff0f3;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            color: #c9184a;
+            font-weight: bold;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #aaa;
+            cursor: pointer;
+        }
+
+        .cart-item-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 15px 0;
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px dashed #ffccd5;
+        }
+
+        .cart-item-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .cart-item-img {
+            width: 45px;
+            height: 45px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .remove-btn {
+            background: #ffb3c1;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
         }
 
         .custom-input {
@@ -100,6 +246,7 @@
             background: #fff8f9;
             color: var(--text-color);
             resize: none;
+            margin-top: 10px;
         }
 
         .btn-submit {
@@ -112,13 +259,19 @@
             font-size: 1.1rem;
             font-weight: bold;
             cursor: pointer;
-            margin-top: 25px;
+            margin-top: 15px;
             box-shadow: 0 5px 15px rgba(255, 77, 109, 0.4);
         }
 
         .btn-submit:disabled {
             background: #ccc;
             cursor: not-allowed;
+        }
+
+        .empty-cart-text {
+            text-align: center;
+            color: #ff8fa3;
+            padding: 20px 0;
         }
 
         .loading-text {
@@ -133,26 +286,48 @@
 
 <div class="container">
     <h1>白白下一餐食D咩</h1>
-    <div class="subtitle">想食乜嘢？撳選項或輸入你想食嘅野</div>
+    <div class="subtitle">想食乜嘢？撳選項加進購物車或者寫低許願想法！</div>
 
-    <div class="section-title">🍱 今日特供菜單 </div>
+    <div class="section-title">🍱 今日特供菜單</div>
     <div class="menu-grid" id="menuGrid">
         <div class="loading-text">毛毛大廚正在為您加載今日菜單... 🍳</div>
     </div>
+</div>
 
-    <div class="section-title">✨ 額外許願池</div>
-    <textarea id="customWish" class="custom-input" rows="3" placeholder="今日特別想食D乜？例如：想飲一杯萬波...（唔可以）"></textarea>
+<!-- 底部懸浮購物車按鈕 -->
+<button class="cart-float-btn" onclick="openCart()">
+    <span>🛒 查看購物車</span>
+    <div>
+        <span id="cartCount">已選 0 項</span>
+    </div>
+</button>
 
-    <button class="btn-submit" id="submitBtn" onclick="submitOrder()">💖 送出菜單畀老公</button>
+<!-- 購物車彈窗 Modal -->
+<div class="modal-overlay" id="cartModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span class="modal-title">🛍️ 白白嘅購物車</span>
+            <button class="close-btn" onclick="closeCart()">&times;</button>
+        </div>
+
+        <!-- 已點菜單列表 -->
+        <div id="cartItemsContainer">
+            <div class="empty-cart-text">購物車仲係空的喔！快啲揀幾樣心水菜式啦～ 💕</div>
+        </div>
+
+        <div class="section-title" style="margin-top: 15px;">✨ 額外許願池</div>
+        <textarea id="customWish" class="custom-input" rows="3" placeholder="今天特別想食D乜？例如：想飲一杯萬波...（唔可以）"></textarea>
+
+        <button class="btn-submit" id="submitBtn" onclick="submitOrder()">💖 送出菜單比毛毛大廚</button>
+    </div>
 </div>
 
 <script>
-    // ⚠️ 設定區：請填入你的連結
-    const FORMSPREE_URL = "https://formspree.io/f/xbgjpddy"; // 你的 Formspree 接收網址
-    const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROrrUIUq4xb815GEfQrz4ucj2unIsnmpahYl_q_Rne3VgguQxUME4jM0yS0nzUSalPi-ir9VfdfMEa/pub?output=csv"; // 你的 Google 試算表 CSV 發佈網址
+    const FORMSPREE_URL = "https://formspree.io/f/xbgjpddy"; 
+    const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROrrUIUq4xb815GEfQrz4ucj2unIsnmpahYl_q_Rne3VgguQxUME4jM0yS0nzUSalPi-ir9VfdfMEa/pub?output=csv";
 
     let menuItems = [];
-    let selectedItems = [];
+    let selectedItems = []; // 儲存已選的物件 {name, img}
 
     // 從 Google 試算表讀取菜單 CSV
     async function loadMenuFromSheet() {
@@ -163,7 +338,6 @@
             const rows = data.split('\n').map(row => row.trim()).filter(row => row.length > 0);
             menuItems = [];
 
-            // 跳過第一行標題，從第二行開始解析
             for (let i = 1; i < rows.length; i++) {
                 const cols = rows[i].split(',');
                 if (cols[0]) {
@@ -180,36 +354,100 @@
         }
     }
 
+    // 渲染主頁菜單
     function renderMenu() {
         const grid = document.getElementById('menuGrid');
         grid.innerHTML = '';
 
         if (menuItems.length === 0) {
-            grid.innerHTML = '<div class="loading-text">今日大廚休息或仲沒比菜品揀喔！</div>';
+            grid.innerHTML = '<div class="loading-text">今天大廚休息或仲未有菜品揀喔！</div>';
             return;
         }
 
-        menuItems.forEach((item, index) => {
-            const isSelected = selectedItems.includes(item.name);
+        menuItems.forEach((item) => {
+            const isSelected = selectedItems.some(i => i.name === item.name);
             const div = document.createElement('div');
             div.className = `menu-item ${isSelected ? 'selected' : ''}`;
-            div.onclick = () => toggleSelect(item.name);
+            div.onclick = () => toggleSelect(item);
             
             const imgHtml = item.img ? `<img src="${item.img}" alt="${item.name}">` : '';
-            div.innerHTML = `${imgHtml}<div class="name">${item.name}</div>`;
+            const btnText = isSelected ? '✓ 已加進購物車' : '+ 加進購物車';
+            
+            div.innerHTML = `
+                <div>
+                    ${imgHtml}
+                    <div class="name">${item.name}</div>
+                </div>
+                <button class="btn-add">${btnText}</button>
+            `;
             grid.appendChild(div);
         });
+
+        updateCartUI();
     }
 
-    function toggleSelect(itemName) {
-        if (selectedItems.includes(itemName)) {
-            selectedItems = selectedItems.filter(name => name !== itemName);
+    // 切換選取狀態
+    function toggleSelect(item) {
+        const index = selectedItems.findIndex(i => i.name === item.name);
+        if (index > -1) {
+            selectedItems.splice(index, 1);
         } else {
-            selectedItems.push(itemName);
+            selectedItems.push(item);
         }
         renderMenu();
     }
 
+    // 更新購物車顯示介面
+    function updateCartUI() {
+        document.getElementById('cartCount').innerText = `已選 ${selectedItems.length} 項`;
+        
+        const container = document.getElementById('cartItemsContainer');
+        if (selectedItems.length === 0) {
+            container.innerHTML = '<div class="empty-cart-text">購物車仲係空的喔！快啲揀幾樣心水菜式啦～ 💕</div>';
+            return;
+        }
+
+        let html = '<ul class="cart-item-list">';
+        selectedItems.forEach((item) => {
+            const imgHtml = item.img ? `<img src="${item.img}" class="cart-item-img">` : '';
+            html += `
+                <li class="cart-item">
+                    <div class="cart-item-info">
+                        ${imgHtml}
+                        <span>${item.name}</span>
+                    </div>
+                    <button class="remove-btn" onclick="removeFromCart('${item.name}')">刪除</button>
+                </li>
+            `;
+        });
+        html += '</ul>';
+        container.innerHTML = html;
+    }
+
+    // 從購物車內刪除指定菜色
+    function removeFromCart(itemName) {
+        selectedItems = selectedItems.filter(i => i.name !== itemName);
+        renderMenu();
+    }
+
+    // 開啟/關閉購物車 Modal
+    function openCart() {
+        document.getElementById('cartModal').style.display = 'flex';
+    }
+
+    function closeCart() {
+        document.getElementById('cartModal').style.display = 'none';
+    }
+
+    // 點擊彈窗外部關閉
+    window.onclick = function(event) {
+        const modal = document.getElementById('cartModal');
+        if (event.target === modal) {
+            closeCart();
+        }
+    }
+
+    // 送出訂單
     async function submitOrder() {
         const customWish = document.getElementById('customWish').value.trim();
 
@@ -222,24 +460,27 @@
         btn.disabled = true;
         btn.innerText = "傳送緊比大廚... 💌";
 
+        const selectedNames = selectedItems.map(i => i.name).join(", ");
+
         try {
             const response = await fetch(FORMSPREE_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    "選取的菜餚": selectedItems.join(", ") || "無",
+                    "選取的菜餚": selectedNames || "無",
                     "特別許願": customWish || "無",
                     "點餐時間": new Date().toLocaleString()
                 })
             });
 
             if (response.ok) {
-                alert("🎉 點餐成功！毛毛大廚已收到你嘅菜單，即刻為你準備！👩‍🍳❤️");
+                alert("🎉 點餐成功！毛毛大廚已收到你嘅菜單，即刻為您準備！👩‍🍳❤️");
                 selectedItems = [];
                 document.getElementById('customWish').value = '';
+                closeCart();
                 renderMenu();
             } else {
-                alert("傳送失敗，請試多一次喇～");
+                alert("傳送失敗，請試多一次睇下先～");
             }
         } catch (error) {
             alert("網路連線有問題，請稍後再試！");
@@ -249,7 +490,7 @@
         }
     }
 
-    // 頁面開啟時自動載入菜單
+    // 初始化
     loadMenuFromSheet();
 </script>
 
