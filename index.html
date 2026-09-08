@@ -141,7 +141,7 @@
     </div>
 
     <div class="section-title">✨ 額外許願池</div>
-    <textarea id="customWish" class="custom-input" rows="3" placeholder="今天特別想食D乜？例如：想飲一杯萬波...（唔可以）"></textarea>
+    <textarea id="customWish" class="custom-input" rows="3" placeholder="今日特別想食D乜？例如：想飲一杯萬波...（唔可以）"></textarea>
 
     <button class="btn-submit" id="submitBtn" onclick="submitOrder()">💖 送出菜單畀老公</button>
 </div>
@@ -185,7 +185,7 @@
         grid.innerHTML = '';
 
         if (menuItems.length === 0) {
-            grid.innerHTML = '<div class="loading-text">今天大廚休息或仲沒比菜品揀喔！</div>';
+            grid.innerHTML = '<div class="loading-text">今日大廚休息或仲沒比菜品揀喔！</div>';
             return;
         }
 
@@ -234,12 +234,12 @@
             });
 
             if (response.ok) {
-                alert("🎉 點餐成功！毛毛大廚已收到你嘅菜單，即刻為您準備！👩‍🍳❤️");
+                alert("🎉 點餐成功！毛毛大廚已收到你嘅菜單，即刻為你準備！👩‍🍳❤️");
                 selectedItems = [];
                 document.getElementById('customWish').value = '';
                 renderMenu();
             } else {
-                alert("傳送失敗，請試多一次睇下先～");
+                alert("傳送失敗，請試多一次喇～");
             }
         } catch (error) {
             alert("網路連線有問題，請稍後再試！");
