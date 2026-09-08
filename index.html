@@ -19,7 +19,7 @@
             color: var(--text-color);
             margin: 0;
             padding: 20px;
-            padding-bottom: 90px; /* 留出底部懸浮購物車空間 */
+            padding-bottom: 90px;
             display: flex;
             justify-content: center;
         }
@@ -33,6 +33,7 @@
             box-shadow: 0 10px 25px rgba(255, 143, 163, 0.3);
             border: 3px solid #ffccd5;
             position: relative;
+            box-sizing: border-box;
         }
 
         h1 {
@@ -132,15 +133,6 @@
             justify-content: space-between;
             align-items: center;
             z-index: 100;
-        }
-
-        .cart-badge {
-            background: white;
-            color: #ff4d6d;
-            border-radius: 50%;
-            padding: 2px 8px;
-            font-size: 0.9rem;
-            margin-left: 8px;
         }
 
         /* 購物車彈窗 Modal */
@@ -280,11 +272,77 @@
             color: #ff758f;
             padding: 20px;
         }
+
+        /* 成功頁面樣式 */
+        .success-page {
+            display: none;
+            text-align: center;
+        }
+
+        .success-icon {
+            font-size: 3.5rem;
+            margin-bottom: 10px;
+        }
+
+        .order-summary-box {
+            background: #fff0f3;
+            border: 2px dashed #ff8fa3;
+            border-radius: 18px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .order-summary-title {
+            font-weight: bold;
+            color: #c9184a;
+            border-bottom: 1px solid #ffccd5;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+        .order-detail-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .order-detail-img {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .wish-text {
+            background: #ffffff;
+            padding: 10px;
+            border-radius: 10px;
+            color: #a4133c;
+            font-size: 0.9rem;
+            margin-top: 8px;
+            word-break: break-all;
+        }
+
+        .btn-add-more {
+            width: 100%;
+            background: white;
+            color: #ff4d6d;
+            border: 2px solid #ff4d6d;
+            padding: 12px;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
+<!-- 1. 點餐主頁面 -->
+<div class="container" id="mainPage">
     <h1>白白下一餐食D咩</h1>
     <div class="subtitle">想食乜嘢？撳選項加進購物車或者寫低許願想法！</div>
 
@@ -295,7 +353,7 @@
 </div>
 
 <!-- 底部懸浮購物車按鈕 -->
-<button class="cart-float-btn" onclick="openCart()">
+<button class="cart-float-btn" id="cartFloatBtn" onclick="openCart()">
     <span>🛒 查看購物車</span>
     <div>
         <span id="cartCount">已選 0 項</span>
@@ -310,7 +368,6 @@
             <button class="close-btn" onclick="closeCart()">&times;</button>
         </div>
 
-        <!-- 已點菜單列表 -->
         <div id="cartItemsContainer">
             <div class="empty-cart-text">購物車仲係空的喔！快啲揀幾樣心水菜式啦～ 💕</div>
         </div>
@@ -322,12 +379,29 @@
     </div>
 </div>
 
+<!-- 2. 下單成功明細頁面 -->
+<div class="container success-page" id="successPage">
+    <div class="success-icon">🎉</div>
+    <h1>點餐成功！</h1>
+    <div class="subtitle">毛毛大廚已收到你嘅菜單，即刻為您準備！👩‍🍳❤️</div>
+
+    <div class="order-summary-box">
+        <div class="order-summary-title">📋 本次已點菜單</div>
+        <div id="submittedItemsList"></div>
+        
+        <div class="order-summary-title" style="margin-top: 15px;">✨ 特別許願內容</div>
+        <div id="submittedWish" class="wish-text">無</div>
+    </div>
+
+    <button class="btn-add-more" onclick="backToMenu()">➕ 仲想加菜 / 重新點餐</button>
+</div>
+
 <script>
     const FORMSPREE_URL = "https://formspree.io/f/xbgjpddy"; 
     const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROrrUIUq4xb815GEfQrz4ucj2unIsnmpahYl_q_Rne3VgguQxUME4jM0yS0nzUSalPi-ir9VfdfMEa/pub?output=csv";
 
     let menuItems = [];
-    let selectedItems = []; // 儲存已選的物件 {name, img}
+    let selectedItems = [];
 
     // 從 Google 試算表讀取菜單 CSV
     async function loadMenuFromSheet() {
@@ -474,11 +548,8 @@
             });
 
             if (response.ok) {
-                alert("🎉 點餐成功！毛毛大廚已收到你嘅菜單，即刻為您準備！👩‍🍳❤️");
-                selectedItems = [];
-                document.getElementById('customWish').value = '';
-                closeCart();
-                renderMenu();
+                // 渲染成功頁面的內容
+                showSuccessPage(customWish);
             } else {
                 alert("傳送失敗，請試多一次睇下先～");
             }
@@ -488,6 +559,48 @@
             btn.disabled = false;
             btn.innerText = "💖 送出菜單比毛毛大廚";
         }
+    }
+
+    // 顯示成功頁面
+    function showSuccessPage(wishText) {
+        // 渲染已點餐點
+        const itemsListContainer = document.getElementById('submittedItemsList');
+        if (selectedItems.length > 0) {
+            let html = '';
+            selectedItems.forEach(item => {
+                const imgHtml = item.img ? `<img src="${item.img}" class="order-detail-img">` : '';
+                html += `
+                    <div class="order-detail-item">
+                        ${imgHtml}
+                        <span>${item.name}</span>
+                    </div>
+                `;
+            });
+            itemsListContainer.innerHTML = html;
+        } else {
+            itemsListContainer.innerHTML = '<div style="color: #666; font-size: 0.9rem;">未選擇固定菜色</div>';
+        }
+
+        // 渲染許願內容
+        document.getElementById('submittedWish').innerText = wishText || "無特別許願內容～";
+
+        // 關閉購物車並切換頁面
+        closeCart();
+        document.getElementById('mainPage').style.display = 'none';
+        document.getElementById('cartFloatBtn').style.display = 'none';
+        document.getElementById('successPage').style.display = 'block';
+    }
+
+    // 返回點餐主頁（加菜）
+    function backToMenu() {
+        document.getElementById('successPage').style.display = 'none';
+        document.getElementById('mainPage').style.display = 'block';
+        document.getElementById('cartFloatBtn').style.display = 'flex';
+        
+        // 清空當前選取，重新點餐
+        selectedItems = [];
+        document.getElementById('customWish').value = '';
+        renderMenu();
     }
 
     // 初始化
