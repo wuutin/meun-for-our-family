@@ -523,7 +523,7 @@
     const FORMSPREE_URL = "https://formspree.io/f/xbgjpddy"; 
     const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROrrUIUq4xb815GEfQrz4ucj2unIsnmpahYl_q_Rne3VgguQxUME4jM0yS0nzUSalPi-ir9VfdfMEa/pub?output=csv";
 
-    // 加鹽 SHA-256 密碼雜湊比對值 (WOAIMAOMAO + SALT)
+    // 加鹽 SHA-256 密碼雜湊比對值 (WOAIMAOMAO + SALT 的 SHA-256)
     const TARGET_HASH = "5c6f3930438cfcb2aa11e106980db4eb7ae952cb200faee4df8b5bfbdbeec0dd";
     const SALT = "MAOMAO_DINING_SECRET_2026";
 
@@ -544,12 +544,18 @@
         const data = encoder.encode(str + SALT);
         const hashBuffer = await crypto.subtle.digest('SHA-256', data);
         const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toLowerCase();
     }
 
     // 驗證密碼
     async function verifyPassword() {
-        const inputPwd = document.getElementById('pwdInput').value.trim();
+        const inputPwd = document.getElementById('pwdInput').value.trim().toUpperCase();
+        
+        if (!inputPwd) {
+            document.getElementById('pwdError').style.display = 'block';
+            return;
+        }
+
         const inputHash = await hashPassword(inputPwd);
 
         if (inputHash === TARGET_HASH) {
