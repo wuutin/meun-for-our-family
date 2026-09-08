@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>公主殿下的專屬點餐食堂 💖</title>
     <style>
-        /* 全局可愛風格設定 */
         :root {
             --primary-color: #ff8fa3;
             --secondary-color: #ffb3c1;
@@ -53,12 +52,8 @@
             color: #a4133c;
             margin-top: 20px;
             margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
-        /* 菜單卡片樣式 */
         .menu-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -73,12 +68,6 @@
             text-align: center;
             cursor: pointer;
             transition: all 0.2s ease;
-            position: relative;
-        }
-
-        .menu-item:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 12px rgba(255, 179, 193, 0.5);
         }
 
         .menu-item.selected {
@@ -100,7 +89,6 @@
             font-size: 0.95rem;
         }
 
-        /* 輸入框樣式 */
         .custom-input {
             width: 100%;
             padding: 12px;
@@ -114,12 +102,6 @@
             resize: none;
         }
 
-        .custom-input:focus {
-            border-style: solid;
-            background: #fff;
-        }
-
-        /* 按鈕樣式 */
         .btn-submit {
             width: 100%;
             background: linear-gradient(135deg, #ff758f, #ff4d6d);
@@ -132,39 +114,11 @@
             cursor: pointer;
             margin-top: 25px;
             box-shadow: 0 5px 15px rgba(255, 77, 109, 0.4);
-            transition: transform 0.1s ease;
         }
 
-        .btn-submit:active {
-            transform: scale(0.98);
-        }
-
-        /* 控制台切換按鈕 (簡易版演示用) */
-        .admin-toggle {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 0.8rem;
-            color: #aaa;
-            cursor: pointer;
-            text-decoration: underline;
-        }
-
-        .admin-panel {
-            display: none;
-            background: #fff5f5;
-            border: 2px dashed #ff4d6d;
-            padding: 15px;
-            border-radius: 15px;
-            margin-top: 15px;
-        }
-
-        .admin-panel input {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 8px;
-            box-sizing: border-box;
-            border: 1px solid #ccc;
-            border-radius: 8px;
+        .btn-submit:disabled {
+            background: #ccc;
+            cursor: not-allowed;
         }
     </style>
 </head>
@@ -174,32 +128,19 @@
     <h1>👑 寶貝專屬點餐食堂</h1>
     <div class="subtitle">今天想吃什麼呢？點擊選擇或許願吧！</div>
 
-    <!-- 1. 可選菜餚區塊 -->
     <div class="section-title">🍱 今日特供菜單 (可多選)</div>
-    <div class="menu-grid" id="menuGrid">
-        <!-- 菜單會由 JavaScript 動態生成 -->
-    </div>
+    <div class="menu-grid" id="menuGrid"></div>
 
-    <!-- 2. 隨意輸入區塊 -->
     <div class="section-title">✨ 額外許願池</div>
-    <textarea id="customWish" class="custom-input" rows="3" placeholder="今天特別想吃什麼？例如：想喝半糖少冰波霸奶茶、想吃巷口的章魚燒..."></textarea>
+    <textarea id="customWish" class="custom-input" rows="3" placeholder="今天特別想吃什麼？例如：想喝半糖少冰波霸奶茶..."></textarea>
 
-    <!-- 送出按鈕 -->
-    <button class="btn-submit" onclick="submitOrder()">💖 送出菜單給專屬大廚</button>
-
-    <!-- 控制端切換入口（模擬控制台） -->
-    <div class="admin-toggle" onclick="toggleAdmin()">⚙️ 管理員（大廚）上菜入口</div>
-    
-    <div class="admin-panel" id="adminPanel">
-        <h3>新增/管理今日菜單</h3>
-        <input type="text" id="newItemName" placeholder="菜餚名稱 (如: 蒜香奶油蝦)">
-        <input type="text" id="newItemImg" placeholder="圖片網址 (可不填)">
-        <button onclick="addMenuItem()" style="width:100%; background:#ff8fa3; border:none; color:white; padding:8px; border-radius:8px; cursor:pointer;">新增至今日菜單</button>
-    </div>
+    <button class="btn-submit" id="submitBtn" onclick="submitOrder()">💖 送出菜單給專屬大廚</button>
 </div>
 
 <script>
-    // 預設今日菜單資料
+    // ⚠️ 關鍵設定：請把下方引號內的網址換成你的 Formspree Endpoint 網址
+    const FORMSPREE_URL = "https://formspree.io/f/xbgjpddy";
+
     let menuItems = [
         { id: 1, name: "紅燒牛腩飯 🍛", img: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300" },
         { id: 2, name: "奶油培根義大利麵 🍝", img: "https://images.unsplash.com/photo-1612874742237-6526221588e3?w=300" },
@@ -209,7 +150,6 @@
 
     let selectedItems = [];
 
-    // 渲染菜單
     function renderMenu() {
         const grid = document.getElementById('menuGrid');
         grid.innerHTML = '';
@@ -218,14 +158,11 @@
             const div = document.createElement('div');
             div.className = `menu-item ${isSelected ? 'selected' : ''}`;
             div.onclick = () => toggleSelect(item.name);
-            
-            const imgTag = item.img ? `<img src="${item.img}" alt="${item.name}">` : '';
-            div.innerHTML = `${imgTag}<div class="name">${item.name}</div>`;
+            div.innerHTML = `<img src="${item.img}" alt="${item.name}"><div class="name">${item.name}</div>`;
             grid.appendChild(div);
         });
     }
 
-    // 選擇/取消選擇菜餚
     function toggleSelect(itemName) {
         if (selectedItems.includes(itemName)) {
             selectedItems = selectedItems.filter(name => name !== itemName);
@@ -235,8 +172,7 @@
         renderMenu();
     }
 
-    // 送出訂單
-    function submitOrder() {
+    async function submitOrder() {
         const customWish = document.getElementById('customWish').value.trim();
 
         if (selectedItems.length === 0 && !customWish) {
@@ -244,49 +180,37 @@
             return;
         }
 
-        let orderSummary = "🎉 收到公主殿下的點餐！\n\n";
-        if (selectedItems.length > 0) {
-            orderSummary += "【選擇的菜餚】：\n- " + selectedItems.join("\n- ") + "\n\n";
-        }
-        if (customWish) {
-            orderSummary += "【特別許願】：\n" + customWish + "\n\n";
-        }
-        orderSummary += "專屬大廚已收到指令，馬上為您準備！👩‍🍳❤️";
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerText = "正在傳送給大廚中... 💌";
 
-        alert(orderSummary);
+        try {
+            const response = await fetch(FORMSPREE_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    "選取的菜餚": selectedItems.join(", ") || "無",
+                    "特別許願": customWish || "無",
+                    "點餐時間": new Date().toLocaleString()
+                })
+            });
 
-        // 提示：正式上線後，這裡可以換成發送 Line 訊息、Telegram Bot 或存入數據庫
+            if (response.ok) {
+                alert("🎉 點餐成功！專屬大廚已收到你的菜單，馬上為您準備！👩‍🍳❤️");
+                selectedItems = [];
+                document.getElementById('customWish').value = '';
+                renderMenu();
+            } else {
+                alert("傳送失敗，請再試一次看看～");
+            }
+        } catch (error) {
+            alert("網路連線有點問題，請稍後再試！");
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "💖 送出菜單給專屬大廚";
+        }
     }
 
-    // 控制端：新增菜餚
-    function addMenuItem() {
-        const name = document.getElementById('newItemName').value.trim();
-        const img = document.getElementById('newItemImg').value.trim();
-
-        if (!name) {
-            alert("請輸入菜餚名稱！");
-            return;
-        }
-
-        menuItems.push({
-            id: Date.now(),
-            name: name,
-            img: img || 'https://via.placeholder.com/150/ffb3c1/ffffff?text=Delicious'
-        });
-
-        document.getElementById('newItemName').value = '';
-        document.getElementById('newItemImg').value = '';
-        renderMenu();
-        alert("新增成功！女朋友現在可以看到這道菜了！");
-    }
-
-    // 切換控制台顯示
-    function toggleAdmin() {
-        const panel = document.getElementById('adminPanel');
-        panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-    }
-
-    // 初始化渲染
     renderMenu();
 </script>
 
