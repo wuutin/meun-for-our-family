@@ -327,15 +327,27 @@
 
         .btn-add-more {
             width: 100%;
-            background: white;
-            color: #ff4d6d;
-            border: 2px solid #ff4d6d;
+            background: #ff4d6d;
+            color: white;
+            border: none;
             padding: 12px;
             border-radius: 20px;
             font-size: 1rem;
             font-weight: bold;
             cursor: pointer;
             margin-top: 10px;
+        }
+
+        .btn-reset {
+            width: 100%;
+            background: transparent;
+            color: #ff758f;
+            border: 1px dashed #ff758f;
+            padding: 10px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 8px;
         }
     </style>
 </head>
@@ -344,7 +356,7 @@
 <!-- 1. 點餐主頁面 -->
 <div class="container" id="mainPage">
     <h1>白白下一餐食D咩</h1>
-    <div class="subtitle">想食乜嘢？撳選項加進購物車或者寫低許願想法！</div>
+    <div class="subtitle">想食乜嘢？撳選項加入購物車或者寫低許願！</div>
 
     <div class="section-title">🍱 今日特供菜單</div>
     <div class="menu-grid" id="menuGrid">
@@ -386,14 +398,15 @@
     <div class="subtitle">毛毛大廚已收到你嘅菜單，即刻為您準備！👩‍🍳❤️</div>
 
     <div class="order-summary-box">
-        <div class="order-summary-title">📋 本次已點菜單</div>
+        <div class="order-summary-title">📋 目前已點總菜單</div>
         <div id="submittedItemsList"></div>
         
         <div class="order-summary-title" style="margin-top: 15px;">✨ 特別許願內容</div>
         <div id="submittedWish" class="wish-text">無</div>
     </div>
 
-    <button class="btn-add-more" onclick="backToMenu()">➕ 仲想加菜 / 重新點餐</button>
+    <button class="btn-add-more" onclick="backToMenuForMore()">➕ 仲想繼續加菜</button>
+    <button class="btn-reset" onclick="resetAllOrders()">🔄 清空菜單重新點餐</button>
 </div>
 
 <script>
@@ -548,7 +561,6 @@
             });
 
             if (response.ok) {
-                // 渲染成功頁面的內容
                 showSuccessPage(customWish);
             } else {
                 alert("傳送失敗，請試多一次睇下先～");
@@ -563,7 +575,6 @@
 
     // 顯示成功頁面
     function showSuccessPage(wishText) {
-        // 渲染已點餐點
         const itemsListContainer = document.getElementById('submittedItemsList');
         if (selectedItems.length > 0) {
             let html = '';
@@ -581,26 +592,27 @@
             itemsListContainer.innerHTML = '<div style="color: #666; font-size: 0.9rem;">未選擇固定菜色</div>';
         }
 
-        // 渲染許願內容
         document.getElementById('submittedWish').innerText = wishText || "無特別許願內容～";
 
-        // 關閉購物車並切換頁面
         closeCart();
         document.getElementById('mainPage').style.display = 'none';
         document.getElementById('cartFloatBtn').style.display = 'none';
         document.getElementById('successPage').style.display = 'block';
     }
 
-    // 返回點餐主頁（加菜）
-    function backToMenu() {
+    // 返回點餐主頁（保持購物車已選菜餚，方便繼續加菜）
+    function backToMenuForMore() {
         document.getElementById('successPage').style.display = 'none';
         document.getElementById('mainPage').style.display = 'block';
         document.getElementById('cartFloatBtn').style.display = 'flex';
-        
-        // 清空當前選取，重新點餐
+        renderMenu(); // 保持已選狀態
+    }
+
+    // 完全清空重新點餐
+    function resetAllOrders() {
         selectedItems = [];
         document.getElementById('customWish').value = '';
-        renderMenu();
+        backToMenuForMore();
     }
 
     // 初始化
