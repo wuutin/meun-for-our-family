@@ -32,6 +32,7 @@
             z-index: 9999;
             pointer-events: none; /* 避免遮擋點擊 */
             animation: bounce 2s infinite ease-in-out;
+            display: none; /* 預設隱藏，由 JS 判斷顯示 */
         }
 
         .fixed-sticker img {
@@ -157,7 +158,7 @@
             font-weight: bold;
             cursor: pointer;
             box-shadow: 0 8px 20px rgba(255, 77, 109, 0.4);
-            display: flex;
+            display: none; /* 預設隱藏，驗證通過後顯示 */
             justify-content: space-between;
             align-items: center;
             z-index: 100;
@@ -403,17 +404,62 @@
             cursor: pointer;
             margin-top: 8px;
         }
+
+        /* 密碼驗證頁面樣式 */
+        .password-page {
+            display: none;
+            text-align: center;
+        }
+
+        .pwd-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ff8fa3;
+            border-radius: 15px;
+            box-sizing: border-box;
+            outline: none;
+            font-size: 1.1rem;
+            text-align: center;
+            letter-spacing: 2px;
+            margin: 15px 0;
+            background: #fff8f9;
+            color: var(--text-color);
+        }
+
+        .pwd-input:focus {
+            border-color: #ff4d6d;
+        }
+
+        .pwd-error {
+            color: #c9184a;
+            font-size: 0.85rem;
+            margin-top: -5px;
+            margin-bottom: 10px;
+            display: none;
+        }
     </style>
 </head>
 <body>
 
-<!-- 全局右上角固定貼圖 (你可以更換 src 裡的圖片連結) -->
-<div class="fixed-sticker">
+<!-- 全局右上角固定貼圖 -->
+<div class="fixed-sticker" id="fixedSticker">
     <img src="https://i.imgur.com/RQ2lOfb.jpg" alt="吉祥物貼圖">
 </div>
 
+<!-- 0. 密碼驗證頁面 (非開放時段時顯示) -->
+<div class="container password-page" id="passwordPage">
+    <div style="font-size: 3rem; margin-top: 10px;">🔒</div>
+    <h1>非點餐開放時段</h1>
+    <div class="subtitle">開放時間：HKT 11:00-12:00 / 16:00-17:00<br>如需提前進入，請輸入暗號密碼 💕</div>
+    
+    <input type="password" id="pwdInput" class="pwd-input" placeholder="請輸入點餐密碼">
+    <div id="pwdError" class="pwd-error">密碼錯誤喔！請重試～ 🔒</div>
+    
+    <button class="btn-submit" onclick="verifyPassword()">進入點餐界面</button>
+</div>
+
 <!-- 1. 點餐主頁面 -->
-<div class="container" id="mainPage">
+<div class="container" id="mainPage" style="display: none;">
     <h1>白白下一餐食D咩</h1>
     <div class="subtitle">想食乜嘢？撳選項加進購物車或者寫低許願想法！</div>
 
@@ -487,6 +533,51 @@
     let countdownInterval = null;
     let timeRemaining = 180; // 3 分鐘倒數 (秒)
     let isTimerRunning = false;
+
+    // 時段控制與密碼驗證邏輯
+    function checkAccess() {
+        // 獲取當前 HKT 時間
+        const now = new Date();
+        const options = { timeZone: 'Asia/Hong_Kong', hour: 'numeric', minute: 'numeric', hour12: false };
+        const hktString = new Intl.DateTimeFormat('en-US', options).format(now);
+        const [hour, minute] = hktString.split(':').map(Number);
+        const timeInMinutes = hour * 60 + minute;
+
+        // 判斷是否在開放時段: 11:00-12:00 (660-720分) 或 16:00-17:00 (960-1020分)
+        const isSlot1 = timeInMinutes >= 660 && timeInMinutes < 720;
+        const isSlot2 = timeInMinutes >= 960 && timeInMinutes < 1020;
+
+        if (isSlot1 || isSlot2) {
+            unlockOrderPage();
+        } else {
+            showPasswordPage();
+        }
+    }
+
+    function showPasswordPage() {
+        document.getElementById('passwordPage').style.display = 'block';
+        document.getElementById('mainPage').style.display = 'none';
+        document.getElementById('cartFloatBtn').style.display = 'none';
+        document.getElementById('fixedSticker').style.display = 'none'; // 隱藏右上角懸浮貼圖
+    }
+
+    function verifyPassword() {
+        const inputPwd = document.getElementById('pwdInput').value.trim();
+        if (inputPwd === "WOAIMAOMAO") {
+            document.getElementById('pwdError').style.display = 'none';
+            unlockOrderPage();
+        } else {
+            document.getElementById('pwdError').style.display = 'block';
+        }
+    }
+
+    function unlockOrderPage() {
+        document.getElementById('passwordPage').style.display = 'none';
+        document.getElementById('mainPage').style.display = 'block';
+        document.getElementById('cartFloatBtn').style.display = 'flex';
+        document.getElementById('fixedSticker').style.display = 'block'; // 顯示右上角懸浮貼圖
+        loadMenuFromSheet();
+    }
 
     // 生成不重複的 4 位數字訂單號 (0000 - 9999)
     function generateUniqueOrderNo() {
@@ -799,8 +890,8 @@
         renderMenu();
     }
 
-    // 初始化菜單
-    loadMenuFromSheet();
+    // 啟動入口檢查
+    checkAccess();
 </script>
 
 </body>
