@@ -255,11 +255,6 @@
             box-shadow: 0 5px 15px rgba(255, 77, 109, 0.4);
         }
 
-        .btn-submit:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-
         .empty-cart-text {
             text-align: center;
             color: #ff8fa3;
@@ -279,9 +274,26 @@
             text-align: center;
         }
 
-        .success-icon {
-            font-size: 3.5rem;
+        .order-badge {
+            display: inline-block;
+            background: #ffccd5;
+            color: #c9184a;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 0.9rem;
             margin-bottom: 10px;
+        }
+
+        .timer-box {
+            background: #fff0f3;
+            border: 2px dashed #ff4d6d;
+            border-radius: 15px;
+            padding: 10px;
+            margin: 15px 0;
+            color: #c9184a;
+            font-weight: bold;
+            font-size: 0.95rem;
         }
 
         .order-summary-box {
@@ -289,7 +301,7 @@
             border: 2px dashed #ff8fa3;
             border-radius: 18px;
             padding: 15px;
-            margin: 20px 0;
+            margin: 15px 0;
             text-align: left;
         }
 
@@ -338,6 +350,11 @@
             margin-top: 10px;
         }
 
+        .btn-add-more:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
         .btn-reset {
             width: 100%;
             background: transparent;
@@ -356,7 +373,7 @@
 <!-- 1. 點餐主頁面 -->
 <div class="container" id="mainPage">
     <h1>白白下一餐食D咩</h1>
-    <div class="subtitle">想食乜嘢？撳選項加入購物車或者寫低許願！</div>
+    <div class="subtitle">想食乜嘢？撳選項加進購物車或者寫低許願想法！</div>
 
     <div class="section-title">🍱 今日特供菜單</div>
     <div class="menu-grid" id="menuGrid">
@@ -393,9 +410,14 @@
 
 <!-- 2. 下單成功明細頁面 -->
 <div class="container success-page" id="successPage">
-    <div class="success-icon">🎉</div>
+    <div style="font-size: 3rem;">🎉</div>
     <h1>點餐成功！</h1>
-    <div class="subtitle">毛毛大廚已收到你嘅菜單，即刻為您準備！👩‍🍳❤️</div>
+    <div class="order-badge" id="orderNumberDisplay">訂單號：#----</div>
+    <div class="subtitle">毛毛大廚已收到你嘅菜單！👩‍🍳❤️</div>
+
+    <div class="timer-box" id="timerBox">
+        ⏳ 第一次下單 3 分鐘內可繼續加菜：<span id="countdown">03:00</span>
+    </div>
 
     <div class="order-summary-box">
         <div class="order-summary-title">📋 目前已點總菜單</div>
@@ -405,8 +427,8 @@
         <div id="submittedWish" class="wish-text">無</div>
     </div>
 
-    <button class="btn-add-more" onclick="backToMenuForMore()">➕ 仲想繼續加菜</button>
-    <button class="btn-reset" onclick="resetAllOrders()">🔄 清空菜單重新點餐</button>
+    <button class="btn-add-more" id="addMoreBtn" onclick="backToMenuForMore()">➕ 仲想繼續加菜</button>
+    <button class="btn-reset" onclick="resetAllOrders()">🔄 開始新一輪點餐（重新計時）</button>
 </div>
 
 <script>
@@ -415,6 +437,30 @@
 
     let menuItems = [];
     let selectedItems = [];
+
+    // 訂單號與定時器變數
+    let currentOrderNo = null;
+    let emailTimer = null;
+    let countdownInterval = null;
+    let timeRemaining = 180; // 3 分鐘倒數 (秒)
+    let isTimerRunning = false;
+
+    // 生成不重複的 4 位數字訂單號 (0000 - 9999)
+    function generateUniqueOrderNo() {
+        let usedOrders = JSON.parse(localStorage.getItem('used_order_numbers') || '[]');
+        if (usedOrders.length >= 10000) {
+            usedOrders = []; // 滿 10000 次後重置循環
+        }
+
+        let num;
+        do {
+            num = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+        } while (usedOrders.includes(num));
+
+        usedOrders.push(num);
+        localStorage.setItem('used_order_numbers', JSON.stringify(usedOrders));
+        return num;
+    }
 
     // 從 Google 試算表讀取菜單 CSV
     async function loadMenuFromSheet() {
@@ -511,13 +557,11 @@
         container.innerHTML = html;
     }
 
-    // 從購物車內刪除指定菜色
     function removeFromCart(itemName) {
         selectedItems = selectedItems.filter(i => i.name !== itemName);
         renderMenu();
     }
 
-    // 開啟/關閉購物車 Modal
     function openCart() {
         document.getElementById('cartModal').style.display = 'flex';
     }
@@ -526,7 +570,6 @@
         document.getElementById('cartModal').style.display = 'none';
     }
 
-    // 點擊彈窗外部關閉
     window.onclick = function(event) {
         const modal = document.getElementById('cartModal');
         if (event.target === modal) {
@@ -534,8 +577,8 @@
         }
     }
 
-    // 送出訂單
-    async function submitOrder() {
+    // 點擊送出菜單（啟動 / 重置 3 分鐘倒數）
+    function submitOrder() {
         const customWish = document.getElementById('customWish').value.trim();
 
         if (selectedItems.length === 0 && !customWish) {
@@ -543,38 +586,86 @@
             return;
         }
 
-        const btn = document.getElementById('submitBtn');
-        btn.disabled = true;
-        btn.innerText = "傳送緊比大廚... 💌";
+        // 如果是全新的一單，生成新訂單號並啟動倒數
+        if (!currentOrderNo) {
+            currentOrderNo = generateUniqueOrderNo();
+            startThreeMinuteTimer();
+        } else {
+            // 如果是加菜，重新安排 3 分鐘後發送（但維持同一個訂單號與初始倒數）
+            resetEmailDelayTask();
+        }
 
+        showSuccessPage(customWish);
+    }
+
+    // 啟動 3 分鐘倒數計時與延遲發送
+    function startThreeMinuteTimer() {
+        isTimerRunning = true;
+        timeRemaining = 180;
+        
+        updateCountdownUI();
+
+        // 倒數計時每秒更新
+        clearInterval(countdownInterval);
+        countdownInterval = setInterval(() => {
+            timeRemaining--;
+            updateCountdownUI();
+
+            if (timeRemaining <= 0) {
+                clearInterval(countdownInterval);
+                isTimerRunning = false;
+                document.getElementById('timerBox').innerHTML = "✅ 訂單已封單並已成功發送給毛毛大廚！";
+                document.getElementById('addMoreBtn').disabled = true;
+                document.getElementById('addMoreBtn').innerText = "🔒 已超過 3 分鐘，無法繼續加菜";
+            }
+        }, 1000);
+
+        resetEmailDelayTask();
+    }
+
+    // 重設 3 分鐘發送任務（有加菜時重新計算 3 分鐘，確保發送最終版）
+    function resetEmailDelayTask() {
+        if (emailTimer) clearTimeout(emailTimer);
+
+        // 預約 3 分鐘 (180,000 毫秒) 後真正發送 Email
+        emailTimer = setTimeout(() => {
+            sendFinalEmail();
+        }, 180000);
+    }
+
+    // 更新倒數文字顯示
+    function updateCountdownUI() {
+        const mins = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
+        const secs = (timeRemaining % 60).toString().padStart(2, '0');
+        document.getElementById('countdown').innerText = `${mins}:${secs}`;
+    }
+
+    // 真正的 Email 發送函數 (向 Formspree 提交)
+    async function sendFinalEmail() {
+        const customWish = document.getElementById('customWish').value.trim();
         const selectedNames = selectedItems.map(i => i.name).join(", ");
 
         try {
-            const response = await fetch(FORMSPREE_URL, {
+            await fetch(FORMSPREE_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    "訂單編號": `#${currentOrderNo}`,
                     "選取的菜餚": selectedNames || "無",
                     "特別許願": customWish || "無",
-                    "點餐時間": new Date().toLocaleString()
+                    "下單時間": new Date().toLocaleString()
                 })
             });
-
-            if (response.ok) {
-                showSuccessPage(customWish);
-            } else {
-                alert("傳送失敗，請試多一次睇下先～");
-            }
+            console.log("Email 已於 3 分鐘後成功發送最終版本！");
         } catch (error) {
-            alert("網路連線有問題，請稍後再試！");
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "💖 送出菜單比毛毛大廚";
+            console.error("發送 Email 失敗:", error);
         }
     }
 
     // 顯示成功頁面
     function showSuccessPage(wishText) {
+        document.getElementById('orderNumberDisplay').innerText = `訂單號：#${currentOrderNo}`;
+
         const itemsListContainer = document.getElementById('submittedItemsList');
         if (selectedItems.length > 0) {
             let html = '';
@@ -600,22 +691,39 @@
         document.getElementById('successPage').style.display = 'block';
     }
 
-    // 返回點餐主頁（保持購物車已選菜餚，方便繼續加菜）
+    // 返回點餐主頁加菜
     function backToMenuForMore() {
+        if (!isTimerRunning) {
+            alert("已超過 3 分鐘加菜時間，如需點餐請點擊「開始新一輪點餐」！");
+            return;
+        }
         document.getElementById('successPage').style.display = 'none';
         document.getElementById('mainPage').style.display = 'block';
         document.getElementById('cartFloatBtn').style.display = 'flex';
-        renderMenu(); // 保持已選狀態
+        renderMenu();
     }
 
-    // 完全清空重新點餐
+    // 重置所有訂單（開啟新一輪）
     function resetAllOrders() {
+        if (emailTimer) clearTimeout(emailTimer);
+        if (countdownInterval) clearInterval(countdownInterval);
+
+        currentOrderNo = null;
+        isTimerRunning = false;
         selectedItems = [];
         document.getElementById('customWish').value = '';
-        backToMenuForMore();
+        
+        document.getElementById('addMoreBtn').disabled = false;
+        document.getElementById('addMoreBtn').innerText = "➕ 仲想繼續加菜";
+        document.getElementById('timerBox').innerHTML = '⏳ 第一次下單 3 分鐘內可繼續加菜：<span id="countdown">03:00</span>';
+
+        document.getElementById('successPage').style.display = 'none';
+        document.getElementById('mainPage').style.display = 'block';
+        document.getElementById('cartFloatBtn').style.display = 'flex';
+        renderMenu();
     }
 
-    // 初始化
+    // 初始化菜單
     loadMenuFromSheet();
 </script>
 
