@@ -32,7 +32,7 @@
             z-index: 9999;
             pointer-events: none; /* 避免遮擋點擊 */
             animation: bounce 2s infinite ease-in-out;
-            display: none; /* 預設隱藏，由 JS 判斷顯示 */
+            display: none; /* 預設隱藏，驗證通過後顯示 */
         }
 
         .fixed-sticker img {
@@ -407,7 +407,7 @@
 
         /* 密碼驗證頁面樣式 */
         .password-page {
-            display: none;
+            display: block;
             text-align: center;
         }
 
@@ -446,13 +446,13 @@
     <img src="https://i.imgur.com/RQ2lOfb.jpg" alt="吉祥物貼圖">
 </div>
 
-<!-- 0. 密碼驗證頁面 (非開放時段時顯示) -->
+<!-- 0. 密碼驗證頁面 (預設顯示) -->
 <div class="container password-page" id="passwordPage">
     <div style="font-size: 3rem; margin-top: 10px;">🔒</div>
-    <h1>非點餐開放時段</h1>
-    <div class="subtitle">開放時間：HKT 11:00-12:00 / 16:00-17:00<br>如需提前進入，請輸入暗號密碼 💕</div>
+    <h1>白白專屬點餐系統</h1>
+    <div class="subtitle">推薦點餐時間：HKT 10:00-11:00 / 16:00-17:00<br>請輸入暗號密碼進入系統 💕</div>
     
-    <input type="password" id="pwdInput" class="pwd-input" placeholder="請輸入點餐密碼">
+    <input type="password" id="pwdInput" class="pwd-input" placeholder="請輸入點餐密碼" onkeypress="handleKeyPress(event)">
     <div id="pwdError" class="pwd-error">密碼錯誤喔！請重試～ 🔒</div>
     
     <button class="btn-submit" onclick="verifyPassword()">進入點餐界面</button>
@@ -523,6 +523,10 @@
     const FORMSPREE_URL = "https://formspree.io/f/xbgjpddy"; 
     const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROrrUIUq4xb815GEfQrz4ucj2unIsnmpahYl_q_Rne3VgguQxUME4jM0yS0nzUSalPi-ir9VfdfMEa/pub?output=csv";
 
+    // 加鹽 SHA-256 密碼雜湊比對值 (WOAIMAOMAO + SALT)
+    const TARGET_HASH = "5c6f3930438cfcb2aa11e106980db4eb7ae952cb200faee4df8b5bfbdbeec0dd";
+    const SALT = "MAOMAO_DINING_SECRET_2026";
+
     let menuItems = [];
     let selectedItems = [];
     let lockedItemNames = []; // 已經送出、被鎖定不可取消的菜色名稱列表
@@ -534,40 +538,31 @@
     let timeRemaining = 180; // 3 分鐘倒數 (秒)
     let isTimerRunning = false;
 
-    // 時段控制與密碼驗證邏輯
-    function checkAccess() {
-        // 獲取當前 HKT 時間
-        const now = new Date();
-        const options = { timeZone: 'Asia/Hong_Kong', hour: 'numeric', minute: 'numeric', hour12: false };
-        const hktString = new Intl.DateTimeFormat('en-US', options).format(now);
-        const [hour, minute] = hktString.split(':').map(Number);
-        const timeInMinutes = hour * 60 + minute;
-
-        // 判斷是否在開放時段: 11:00-12:00 (660-720分) 或 16:00-17:00 (960-1020分)
-        const isSlot1 = timeInMinutes >= 660 && timeInMinutes < 720;
-        const isSlot2 = timeInMinutes >= 960 && timeInMinutes < 1020;
-
-        if (isSlot1 || isSlot2) {
-            unlockOrderPage();
-        } else {
-            showPasswordPage();
-        }
+    // 計算 SHA-256 雜湊值
+    async function hashPassword(str) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(str + SALT);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    function showPasswordPage() {
-        document.getElementById('passwordPage').style.display = 'block';
-        document.getElementById('mainPage').style.display = 'none';
-        document.getElementById('cartFloatBtn').style.display = 'none';
-        document.getElementById('fixedSticker').style.display = 'none'; // 隱藏右上角懸浮貼圖
-    }
-
-    function verifyPassword() {
+    // 驗證密碼
+    async function verifyPassword() {
         const inputPwd = document.getElementById('pwdInput').value.trim();
-        if (inputPwd === "WOAIMAOMAO") {
+        const inputHash = await hashPassword(inputPwd);
+
+        if (inputHash === TARGET_HASH) {
             document.getElementById('pwdError').style.display = 'none';
             unlockOrderPage();
         } else {
             document.getElementById('pwdError').style.display = 'block';
+        }
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === 'Enter') {
+            verifyPassword();
         }
     }
 
@@ -889,9 +884,6 @@
         document.getElementById('cartFloatBtn').style.display = 'flex';
         renderMenu();
     }
-
-    // 啟動入口檢查
-    checkAccess();
 </script>
 
 </body>
